@@ -38,7 +38,9 @@ err() {
 }
 
 root_check() {
-    [[ $EUID != 0 ]] && err "Please run as root."
+    if [[ $EUID != 0 ]]; then
+        err "Please run as root."
+    fi
 }
 
 data_files_check() {
@@ -87,11 +89,13 @@ kernel_list() {
 kernel_repo() {
     printf "\e[32mAvailable kernels:\e[0m\n"
     for kname in ${KERNEL_NAMES}; do
-        pacman -Ssq $kname | grep -w ^$kname$
+        name=$(pacman -Ssq $kname | grep -w ^$kname$)
+        [[ ! -z "$name" ]] && echo $name
     done
     if [[ "$AUR_ENABLED" == "y" ]]; then
         for kname in ${KERNEL_AUR_NAMES}; do
-            echo "$($AUR_HELPER -Ssq $kname | grep -w ^$kname$) (aur)"
+            name=$($AUR_HELPER -Ssq $kname | grep -w ^$kname$)
+            [[ ! -z "$name" ]] && echo "$name (aur)"
         done
     fi
 }
@@ -102,7 +106,7 @@ kernel_remove() {
     for kernel in "$@"; do
         [[ -z "$kernel" ]] && err "Invalid argument (use -h for help)."
         [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && err "Please enter a valid kernel name.\n$(kernel_list)"
-        [[ $current_kernel_name = $kernel ]] && err "You can't remove your current kernel."
+        [[ $current_kname = $kernel ]] && err "You can't remove your current kernel."
         [[ -z $(pacman -Qqs "^$1$") ]] && err "Kernel not installed.\n$(kernel_list)"
 
         for pkg in $(pacman -Qqs "$kernel"); do
@@ -120,7 +124,7 @@ kernel_install() {
     for kernel in "$@"; do
         [[ $kernel = "rmc" ]] && rmc=1 && continue
         [[ $kernel != linux[0-9][0-9]?([0-9]) && $kernel != linux-rt-*manjaro && $kernel != "rmc" ]] && err "Invalid argument.\nPlease choose one of the $(kernel_repo)"
-        [[ $current_kernel_name = $kernel ]] && err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
+        [[ $current_kname = $kernel ]] && err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
         [[ -z $(pacman -Ssq "^$kernel$") ]] && err "Please make sure if the given kernel(s) exist(s).\n$(kernel_repo)"
 
         for pkg in $(pacman -Qqs "$current"); do
@@ -158,8 +162,10 @@ check_aur_helper() {
 ###############################################################################
 
 IFS=. read -r major minor _ <<< "$(uname -r)"
-current_kernel_name=$(uname -s)
-current="$current_kernel_name $major.$minor"
+current_kname=$(uname -s)
+current="$current_kname $major.$minor"
+
+echo $current_kname
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_base ]] && current=linux-rt-manjaro
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_lts_base ]] && current=linux-rt-lts-manjaro
 
@@ -178,12 +184,13 @@ load_kernel_names
 
 while :; do
     case ${1:-"-h"} in
+        -a|--aur)               shift ;;
         -h|-\?|--help)          usage
                                 exit 0 ;;
         -i|--install)           if [ "${2:-}" ]; then
                                     root_check
                                     shift
-                                    echo "kernel_install $@"
+                                    kernel_install $@
                                     exit 0
                                 else
                                     err "Invalid arguments (use -h for help)."
@@ -192,10 +199,10 @@ while :; do
                                 exit 0 ;;
         -li|--list-installed)   kernel_list
                                 exit 0 ;;
-        -r|--removed)           if [ "${2:-}" ]; then
+        -r|--remove)            if [ "${2:-}" ]; then
                                     root_check
                                     shift
-                                    echo "kernel_remove $@"
+                                    kernel_remove $@
                                     exit 0
                                 else
                                     err "Invalid arguments (use -h for help)."
