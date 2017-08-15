@@ -1,0 +1,91 @@
+linux-ck-headers 4.12.7-1
+linux-ck 4.12.7-1
+
+linux-mainline-headers 4.13rc4-1
+linux-mainline-docs 4.13rc4-1
+linux-mainline 4.13rc4-1
+
+linux-pf-preset-default 4.11.7-1
+linux-pf-headers 4.11.7-1
+linux-pf 4.11.7-1
+
+linux-rt-headers 4.9.40_rt30-1
+linux-rt-docs 4.9.40_rt30-1
+linux-rt 4.9.40_rt30-1
+
+linux-lqx-headers 4.11.12-1
+linux-lqx-docs 4.11.12-1
+linux-lqx 4.11.12-1
+
+linux-ice-headers 4.6.7-1
+linux-ice-docs 4.6.7-1
+linux-ice 4.6.7-1
+
+linux-pae-headers 4.12.3-1
+linux-pae-docs 4.12.3-1
+linux-pae 4.12.3-1
+
+linux-git-headers 4.13rc5.r0.gef954844c7ac-1
+linux-git-docs 4.13rc5.r0.gef954844c7ac-1
+linux-git 4.13rc5.r0.gef954844c7ac-1
+
+linux-aufs_friendly-headers 4.11.2-1
+linux-aufs_friendly-docs 4.11.2-1
+linux-aufs_friendly 4.11.2-1
+
+linux-vfio-headers 4.12.6-1
+linux-vfio-docs 4.12.6-1
+linux-vfio 4.12.6-1
+
+linux-lts-ck-headers 4.9.41-1
+linux-lts-ck 4.9.41-1
+
+linux-zen-git-headers 4.12.7+679945+gef6519b8b461-1
+linux-zen-git 4.12.7+679945+gef6519b8b461-1
+
+linux-macbook-headers 4.12.5-1
+linux-macbook-docs 4.12.5-1
+linux-macbook 4.12.5-1
+
+linux-selinux-headers 4.12.6-1
+linux-selinux-docs 4.12.6-1
+linux-selinux 4.12.6-1
+
+linux-rt-lts-headers 4.4.79_rt92-1
+linux-rt-lts-docs 4.4.79_rt92-1
+linux-rt-lts 4.4.79_rt92-1
+
+linux-fbcondecor-headers 4.2.3-1
+linux-fbcondecor-docs 4.2.3-1
+linux-fbcondecor 4.2.3-1
+
+linux-userns-headers 4.12.6-1
+linux-userns-docs 4.12.6-1
+linux-userns 4.12.6-1
+
+linux-nvme-headers 4.10.14-1
+linux-nvme-docs 4.10.14-1
+linux-nvme 4.10.14-1
+
+linux-bfq-headers 4.11.12-3
+linux-bfq-docs 4.11.12-3
+linux-bfq 4.11.12-3
+
+linux-surfacepro3-headers 4.6-1
+linux-surfacepro3-docs 4.6-1
+linux-surfacepro3 4.6-1
+
+linux-mptcp-headers 1:0.92-2
+linux-mptcp-docs 1:0.92-2
+linux-mptcp 1:0.92-2
+
+linux-amd-staging-git-headers 4.12.680772.06b85147cc7f-2
+linux-amd-staging-git-docs 4.12.680772.06b85147cc7f-2
+linux-amd-staging-git 4.12.680772.06b85147cc7f-2
+
+linux-usermode-modules 4.12.2-1
+linux-usermode 4.12.2-1
+
+linux-next-git-headers 20161201-1
+linux-next-git-docs 20161201-1
+linux-next-git 20161201-1

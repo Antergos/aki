@@ -1,0 +1,15 @@
+linux 4.12.6-1
+linux-docs 4.12.6-1
+linux-headers 4.12.6-1
+
+linux-lts 4.9.42-1
+linux-lts-docs 4.9.42-1
+linux-lts-headers 4.9.42-1
+
+linux-zen 4.12.5-1
+linux-zen-docs 4.12.5-1
+linux-zen-headers 4.12.5-1
+
+linux-hardened 4.12.7.a-1
+linux-hardened-docs 4.12.7.a-1
+linux-hardened-headers 4.12.7.a-1
