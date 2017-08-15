@@ -164,8 +164,9 @@ check_aur_helper() {
 IFS=. read -r major minor _ <<< "$(uname -r)"
 current_kname=$(uname -s)
 current="$current_kname $major.$minor"
+# convert string to lower case
+current_kname=$(echo $current_kname | tr '[:upper:]' '[:lower:]')
 
-echo $current_kname
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_base ]] && current=linux-rt-manjaro
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_lts_base ]] && current=linux-rt-lts-manjaro
 
