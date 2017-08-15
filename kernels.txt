@@ -1,3 +1,5 @@
+# Kernels available in official repositories
+
 linux 4.12.6-1
 linux-docs 4.12.6-1
 linux-headers 4.12.6-1

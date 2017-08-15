@@ -1,0 +1,108 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+#
+#  akiu - Antergos Kernel Installer Utility
+#  Copyright © 2017 Antergos
+#
+#  Based on code from mhwd-kernel from Manjaro
+#
+#  Aiku is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Aiku is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  The following additional terms are in effect as per Section 7 of the license:
+#
+#  The preservation of all legal notices and author attributions in
+#  the material or in the Appropriate Legal Notices displayed
+#  by works containing it is required.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Aiku; If not, see <http://www.gnu.org/licenses/>.
+
+KERNEL_NAMES=""
+KERNEL_AUR_NAMES=""
+KERNEL_NAMES_FILE="kernels.txt"
+KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
+
+err() {
+    printf "\e[31mError:\e[0m $1\n" 1>&2; exit 1
+}
+
+root_check() {
+    [[ $EUID != 0 ]] && err "Please run as root."
+}
+
+data_files_check() {
+    if [[ ! -f $KERNEL_NAMES_FILE ]] || [[ ! -f $KERNEL_AUR_NAMES_FILE ]]; then
+        err "Missing data files!"
+    fi
+}
+
+args_check() {
+    [[ $1 -lt $2 || $1 -gt $3 ]] && err "Please use the right amount of arguments (use -h for help)."
+}
+
+usage() {
+    echo "Usage: akiu [option] [kernel(s)]
+        -h  --help               Show this help message
+        -i  --install            Install new kernel(s)
+        -l  --list               List all available kernels
+        -li --list-installed     List installed kernels
+        -r  --remove             Remove kernel(s)"
+}
+
+load_kernel_names() {
+    KERNEL_NAMES=$(grep -h -v ^# ${KERNEL_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
+    KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
+}
+
+kernel_list() {
+    printf "\e[32mCurrently running:\e[0m $(uname -r) (${current})\n"
+    echo "The following kernels are installed in your system:"
+
+    echo "pacman -Qqs ${KERNEL_NAMES}"
+
+    #pacman -Qqs "^linux[0-9-][0-9r]?.*[0-9o]$" | grep -v "r8" | while read -r; do echo "   * $REPLY"; done
+}
+
+###############################################################################
+
+IFS=. read -r major minor _ <<< "$(uname -r)"
+current_kernel_name=$(uname -s)
+current="$current_kernel_name $major.$minor"
+#[[ $(uname -r) == *rt* ]] && [[ $current == $rt_base ]] && current=linux-rt-manjaro
+#[[ $(uname -r) == *rt* ]] && [[ $current == $rt_lts_base ]] && current=linux-rt-lts-manjaro
+
+data_files_check
+
+case "$1" in
+    -h | --help)             args_check $# 1 1
+                             usage
+                             exit 0;;
+    -i | --install)          shift
+                             root_check
+                             load_kernel_names
+                             kernel_install $@
+                             exit 0 ;;
+    -l | --list)             args_check $# 1 1
+                             load_kernel_names
+                             kernel_repo
+                             exit 0 ;;
+    -li| --list-installed)   args_check $# 1 1
+                             load_kernel_names
+                             kernel_list
+                             exit 0 ;;
+    -r | --remove)           shift
+                             root_check
+                             load_kernel_names
+                             kernel_remove $@
+                             exit 0 ;;
+    -*)                      err "Invalid argument (use -h for help)." ;;
+    *)                       err "No arguments given (use -h for help)." ;;
+esac
