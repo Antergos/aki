@@ -31,7 +31,7 @@ KERNEL_NAMES=""
 KERNEL_AUR_NAMES=""
 KERNEL_NAMES_FILE="kernels.txt"
 KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
-AUR_HELPER="yaourt"
+AUR_HELPERS="yaourt packer pacaur"
 
 err() {
     printf "\e[31mError:\e[0m $1\n" 1>&2; exit 1
@@ -63,18 +63,24 @@ usage() {
 
 load_kernel_names() {
     KERNEL_NAMES=$(grep -h -v ^# ${KERNEL_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
-    if [[ "${AUR_ENABLED:-}" == "y" ]]; then
+    if [[ "$AUR_ENABLED" == "y" ]]; then
       KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
-      echo $KERNEL_AUR_NAMES
     fi
 }
 
 kernel_list() {
     printf "\e[32mCurrently running:\e[0m $(uname -r) (${current})\n"
     echo "The following kernels are installed in your system:"
-    echo "pacman -Qqs ${KERNEL_NAMES}"
+    names=()
+    for kname in ${KERNEL_NAMES}; do
+        name=$(pacman -Qqs $kname | grep -w ^$kname$)
+        [[ ! -z "$name" ]] && echo $name
+    done
     if [[ "$AUR_ENABLED" == "y" ]]; then
-      echo "$AUR_HELPER -Qqs ${KERNEL_AUR_NAMES}"
+        for kname in ${KERNEL_AUR_NAMES}; do
+            name=$($AUR_HELPER -Qqs $kname | grep -w ^$kname$)
+            [[ ! -z "$name" ]] && echo "$name (aur)"
+        done
     fi
 }
 
@@ -84,9 +90,8 @@ kernel_repo() {
         pacman -Ssq $kname | grep -w ^$kname$
     done
     if [[ "$AUR_ENABLED" == "y" ]]; then
-        printf "\e[32mAvailable kernels (AUR):\e[0m\n"
         for kname in ${KERNEL_AUR_NAMES}; do
-            $AUR_HELPER -Ssq $kname | grep -w ^$kname$
+            echo "$($AUR_HELPER -Ssq $kname | grep -w ^$kname$) (aur)"
         done
     fi
 }
@@ -139,6 +144,17 @@ kernel_install() {
     [[ $rmc = 1 && $? != 0 ]] && { echo ""; err "'rmc' aborted because the kernel failed to install or canceled on removal."; }
 }
 
+check_aur_helper() {
+    AUR_HELPER=""
+    for helper in $AUR_HELPERS; do
+        if [[ "$(pacman -Qsq $helper)" != "" ]]; then
+            AUR_HELPER=$helper
+            return 0
+        fi
+    done
+    err "You need to install one of these AUR helpers ($AUR_HELPERS)"
+}
+
 ###############################################################################
 
 IFS=. read -r major minor _ <<< "$(uname -r)"
@@ -147,15 +163,18 @@ current="$current_kernel_name $major.$minor"
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_base ]] && current=linux-rt-manjaro
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_lts_base ]] && current=linux-rt-lts-manjaro
 
-data_files_check
-load_kernel_names
+check_aur_helper
 
 AUR_ENABLED="n"
 for param in $@; do
     if [[ "$param" == "--aur" ]] || [[ "$param" == "-a" ]]; then
         AUR_ENABLED="y"
+        printf "(Using \e[32m$helper\e[0m AUR helper)\n"
     fi
 done
+
+data_files_check
+load_kernel_names
 
 while :; do
     case ${1:-"-h"} in
