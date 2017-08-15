@@ -29,6 +29,8 @@ KERNEL_NAMES=""
 KERNEL_AUR_NAMES=""
 KERNEL_NAMES_FILE="kernels.txt"
 KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
+AUR_ENABLED="n"
+AUR_HELPER="yaourt"
 
 err() {
     printf "\e[31mError:\e[0m $1\n" 1>&2; exit 1
@@ -54,21 +56,80 @@ usage() {
         -i  --install            Install new kernel(s)
         -l  --list               List all available kernels
         -li --list-installed     List installed kernels
-        -r  --remove             Remove kernel(s)"
+        -r  --remove             Remove kernel(s)
+        -a  --aur                Enable AUR kernels (disabled by default)"
 }
 
 load_kernel_names() {
     KERNEL_NAMES=$(grep -h -v ^# ${KERNEL_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
-    KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
+    if [[ "$AUR_ENABLED" == "y" ]]; then
+      KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
+    fi
 }
 
 kernel_list() {
     printf "\e[32mCurrently running:\e[0m $(uname -r) (${current})\n"
     echo "The following kernels are installed in your system:"
+    pacman -Qqs ${KERNEL_NAMES}
+    if [[ "$AUR_ENABLED" == "y" ]]; then
+      $AUR_HELPER -Qqs ${KERNEL_AUR_NAMES}
+    fi
+}
 
-    echo "pacman -Qqs ${KERNEL_NAMES}"
+kernel_repo() {
+    printf "\e[32mavailable kernels:\e[0m\n"
+    pacman -Ssq ${KERNEL_NAMES}
+    if [[ "$AUR_ENABLED" ]]; then
+      $AUR_HELPER -Ssq ${KERNEL_AUR_NAMES}
+    fi
+}
 
-    #pacman -Qqs "^linux[0-9-][0-9r]?.*[0-9o]$" | grep -v "r8" | while read -r; do echo "   * $REPLY"; done
+kernel_remove() {
+    pkgremove=()
+
+    for kernel in "$@"; do
+        [[ -z "$kernel" ]] && err "Invalid argument (use -h for help)."
+        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && err "Please enter a valid kernel name.\n$(kernel_list)"
+        [[ $current_kernel_name = $kernel ]] && err "You can't remove your current kernel."
+        [[ -z $(pacman -Qqs "^$1$") ]] && err "Kernel not installed.\n$(kernel_list)"
+
+        for pkg in $(pacman -Qqs "$kernel"); do
+            pkgremove+=("$pkg")
+        done
+    done
+
+    echo "pacman -R \"${pkgremove[@]}\""
+}
+
+kernel_install() {
+    pkginstall=()
+    rmc=0
+
+    for kernel in "$@"; do
+        [[ $kernel = "rmc" ]] && rmc=1 && continue
+        [[ $kernel != linux[0-9][0-9]?([0-9]) && $kernel != linux-rt-*manjaro && $kernel != "rmc" ]] && err "Invalid argument.\nPlease choose one of the $(kernel_repo)"
+        [[ $current_kernel_name = $kernel ]] && err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
+        [[ -z $(pacman -Ssq "^$kernel$") ]] && err "Please make sure if the given kernel(s) exist(s).\n$(kernel_repo)"
+
+        for pkg in $(pacman -Qqs "$current"); do
+            pkg=${pkg//$current/$kernel}
+            [[ -n $(pacman -Ssq "^$pkg$") ]] && pkginstall+=("$pkg")
+        done
+    done
+
+    pacman -Syy
+
+    outofdate="$(pacman -Qqu | tr '\n' ' ')"
+    if [[ -n $outofdate ]]; then
+        echo "The following packages are out of date, please update your system first: $outofdate" >&2
+        read -p "Do you want to continue anyway? [y/N] " yesno
+        [[ $yesno = [Yy]?([Ee][Ss]) ]] || exit 1
+    fi
+
+    pacman -S "${pkginstall[@]}"
+
+    [[ $rmc = 1 && $? = 0 ]] && pacman -R $(pacman -Qqs $current)
+    [[ $rmc = 1 && $? != 0 ]] && { echo ""; err "'rmc' aborted because the kernel failed to install or canceled on removal."; }
 }
 
 ###############################################################################
@@ -85,6 +146,7 @@ case "$1" in
     -h | --help)             args_check $# 1 1
                              usage
                              exit 0;;
+    -a | --aur)              AUR_ENABLED="y" ;;
     -i | --install)          shift
                              root_check
                              load_kernel_names
