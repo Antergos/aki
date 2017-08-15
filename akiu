@@ -25,11 +25,12 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Aiku; If not, see <http://www.gnu.org/licenses/>.
 
+set -euo pipefail
+
 KERNEL_NAMES=""
 KERNEL_AUR_NAMES=""
 KERNEL_NAMES_FILE="kernels.txt"
 KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
-AUR_ENABLED="n"
 AUR_HELPER="yaourt"
 
 err() {
@@ -62,25 +63,31 @@ usage() {
 
 load_kernel_names() {
     KERNEL_NAMES=$(grep -h -v ^# ${KERNEL_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
-    if [[ "$AUR_ENABLED" == "y" ]]; then
+    if [[ "${AUR_ENABLED:-}" == "y" ]]; then
       KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
+      echo $KERNEL_AUR_NAMES
     fi
 }
 
 kernel_list() {
     printf "\e[32mCurrently running:\e[0m $(uname -r) (${current})\n"
     echo "The following kernels are installed in your system:"
-    pacman -Qqs ${KERNEL_NAMES}
+    echo "pacman -Qqs ${KERNEL_NAMES}"
     if [[ "$AUR_ENABLED" == "y" ]]; then
-      $AUR_HELPER -Qqs ${KERNEL_AUR_NAMES}
+      echo "$AUR_HELPER -Qqs ${KERNEL_AUR_NAMES}"
     fi
 }
 
 kernel_repo() {
-    printf "\e[32mavailable kernels:\e[0m\n"
-    pacman -Ssq ${KERNEL_NAMES}
-    if [[ "$AUR_ENABLED" ]]; then
-      $AUR_HELPER -Ssq ${KERNEL_AUR_NAMES}
+    printf "\e[32mAvailable kernels:\e[0m\n"
+    for kname in ${KERNEL_NAMES}; do
+        pacman -Ssq $kname | grep -w ^$kname$
+    done
+    if [[ "$AUR_ENABLED" == "y" ]]; then
+        printf "\e[32mAvailable kernels (AUR):\e[0m\n"
+        for kname in ${KERNEL_AUR_NAMES}; do
+            $AUR_HELPER -Ssq $kname | grep -w ^$kname$
+        done
     fi
 }
 
@@ -141,30 +148,43 @@ current="$current_kernel_name $major.$minor"
 #[[ $(uname -r) == *rt* ]] && [[ $current == $rt_lts_base ]] && current=linux-rt-lts-manjaro
 
 data_files_check
+load_kernel_names
 
-case "$1" in
-    -h | --help)             args_check $# 1 1
-                             usage
-                             exit 0;;
-    -a | --aur)              AUR_ENABLED="y" ;;
-    -i | --install)          shift
-                             root_check
-                             load_kernel_names
-                             kernel_install $@
-                             exit 0 ;;
-    -l | --list)             args_check $# 1 1
-                             load_kernel_names
-                             kernel_repo
-                             exit 0 ;;
-    -li| --list-installed)   args_check $# 1 1
-                             load_kernel_names
-                             kernel_list
-                             exit 0 ;;
-    -r | --remove)           shift
-                             root_check
-                             load_kernel_names
-                             kernel_remove $@
-                             exit 0 ;;
-    -*)                      err "Invalid argument (use -h for help)." ;;
-    *)                       err "No arguments given (use -h for help)." ;;
-esac
+AUR_ENABLED="n"
+for param in $@; do
+    if [[ "$param" == "--aur" ]] || [[ "$param" == "-a" ]]; then
+        AUR_ENABLED="y"
+    fi
+done
+
+while :; do
+    case ${1:-"-h"} in
+        -h|-\?|--help)          usage
+                                exit 0 ;;
+        -i|--install)           if [ "${2:-}" ]; then
+                                    root_check
+                                    shift
+                                    echo "kernel_install $@"
+                                    exit 0
+                                else
+                                    err "Invalid arguments (use -h for help)."
+                                fi ;;
+        -l|--list-all)          kernel_repo
+                                exit 0 ;;
+        -li|--list-installed)   kernel_list
+                                exit 0 ;;
+        -r|--removed)           if [ "${2:-}" ]; then
+                                    root_check
+                                    shift
+                                    echo "kernel_remove $@"
+                                    exit 0
+                                else
+                                    err "Invalid arguments (use -h for help)."
+                                fi ;;
+        --)                     shift
+                                break ;;
+        *)                      echo "Invalid argument '${1:-}'."
+                                usage
+                                exit 0 ;;
+    esac
+done
