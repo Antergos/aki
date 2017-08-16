@@ -54,12 +54,12 @@ args_check() {
 }
 
 usage() {
-    echo "Usage: akiu [option] [kernel(s)]
+    echo "Usage: akiu [option] [kernel]
         -h  --help               Show this help message
-        -i  --install            Install new kernel(s)
+        -i  --install            Install new kernel
         -l  --list               List all available kernels
         -li --list-installed     List installed kernels
-        -r  --remove             Remove kernel(s)
+        -r  --remove             Remove kernel
         -a  --aur                Enable AUR kernels (disabled by default)"
 }
 
@@ -87,7 +87,7 @@ kernel_list() {
 }
 
 kernel_repo() {
-    printf "\e[32mAvailable kernels:\e[0m\n"
+    printf "\e[32mAvailable kernels online:\e[0m\n"
     for kname in ${KERNEL_NAMES}; do
         name=$(pacman -Ssq $kname | grep -w ^$kname$)
         [[ ! -z "$name" ]] && echo $name
@@ -121,31 +121,43 @@ kernel_install() {
     pkginstall=()
     rmc=0
 
-    for kernel in "$@"; do
-        [[ $kernel = "rmc" ]] && rmc=1 && continue
-        [[ $kernel != linux[0-9][0-9]?([0-9]) && $kernel != linux-rt-*manjaro && $kernel != "rmc" ]] && err "Invalid argument.\nPlease choose one of the $(kernel_repo)"
-        [[ $current_kname = $kernel ]] && err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
-        [[ -z $(pacman -Ssq "^$kernel$") ]] && err "Please make sure if the given kernel(s) exist(s).\n$(kernel_repo)"
+    _pacman="pacman"
 
-        for pkg in $(pacman -Qqs "$current"); do
+    if [[ "$AUR_ENABLED" == "y" ]]; then
+         _pacman="$AUR_HELPER"
+    fi
+
+    for kernel in "$@"; do
+        echo $kernel
+        [[ $kernel = "rmc" ]] && rmc=1 && continue
+        if [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]]; then
+            # echo "Checking available kernels online... (please wait)"
+            err "Please enter a valid kernel name.\n$(kernel_repo)"
+        fi
+        if [[ $current_kname = $kernel ]]; then
+            err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
+        fi
+        if [[ -z $($_pacman -Ssq "^$kernel$") ]]; then
+            kernel_repo
+            err "Please make sure if the given kernel exist."
+        fi
+
+        for pkg in $($_pacman -Qqs "$current_kname"); do
             pkg=${pkg//$current/$kernel}
-            [[ -n $(pacman -Ssq "^$pkg$") ]] && pkginstall+=("$pkg")
+            [[ -n $($_pacman -Ssq "^$pkg$") ]] && pkginstall+=("$pkg")
         done
     done
 
-    pacman -Syy
+    $_pacman -Sqyy
+    outofdate="$($_pacman -Qqu | tr '\n' ' ')"
 
-    outofdate="$(pacman -Qqu | tr '\n' ' ')"
     if [[ -n $outofdate ]]; then
         echo "The following packages are out of date, please update your system first: $outofdate" >&2
         read -p "Do you want to continue anyway? [y/N] " yesno
         [[ $yesno = [Yy]?([Ee][Ss]) ]] || exit 1
     fi
 
-    pacman -S "${pkginstall[@]}"
-
-    [[ $rmc = 1 && $? = 0 ]] && pacman -R $(pacman -Qqs $current)
-    [[ $rmc = 1 && $? != 0 ]] && { echo ""; err "'rmc' aborted because the kernel failed to install or canceled on removal."; }
+    echo "$_pacman -S \"${pkginstall[@]}\""
 }
 
 check_aur_helper() {
@@ -176,7 +188,7 @@ AUR_ENABLED="n"
 for param in $@; do
     if [[ "$param" == "--aur" ]] || [[ "$param" == "-a" ]]; then
         AUR_ENABLED="y"
-        printf "(Using \e[32m$helper\e[0m AUR helper)\n"
+        printf "(Using \e[32m$AUR_HELPER\e[0m AUR helper)\n"
     fi
 done
 
@@ -191,7 +203,7 @@ while :; do
         -i|--install)           if [ "${2:-}" ]; then
                                     root_check
                                     shift
-                                    kernel_install $@
+                                    kernel_install $1
                                     exit 0
                                 else
                                     err "Invalid arguments (use -h for help)."
@@ -203,7 +215,7 @@ while :; do
         -r|--remove)            if [ "${2:-}" ]; then
                                     root_check
                                     shift
-                                    kernel_remove $@
+                                    kernel_remove $1
                                     exit 0
                                 else
                                     err "Invalid arguments (use -h for help)."
