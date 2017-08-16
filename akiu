@@ -130,13 +130,8 @@ kernel_install() {
     for kernel in "$@"; do
         echo $kernel
         [[ $kernel = "rmc" ]] && rmc=1 && continue
-        if [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]]; then
-            # echo "Checking available kernels online... (please wait)"
-            err "Please enter a valid kernel name.\n$(kernel_repo)"
-        fi
-        if [[ $current_kname = $kernel ]]; then
-            err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
-        fi
+        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && err "Please enter a valid kernel name.\n$(kernel_repo)"
+        [[ $current_kname = $kernel ]] && err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
         if [[ -z $($_pacman -Ssq "^$kernel$") ]]; then
             kernel_repo
             err "Please make sure if the given kernel exist."
