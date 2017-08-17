@@ -4,14 +4,14 @@
 #  akiu - Antergos Kernel Installer Utility
 #  Copyright © 2017 Antergos
 #
-#  Based on code from mhwd-kernel from Manjaro
+#  Loosely based on code from mhwd-kernel from Manjaro
 #
-#  Aiku is free software; you can redistribute it and/or modify
+#  Akiu is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Aiku is distributed in the hope that it will be useful,
+#  Akiu is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
@@ -23,34 +23,35 @@
 #  by works containing it is required.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with Aiku; If not, see <http://www.gnu.org/licenses/>.
+#  along with Akiu; If not, see <http://www.gnu.org/licenses/>.
 
 set -euo pipefail
 
 KERNEL_NAMES=""
 KERNEL_AUR_NAMES=""
-KERNEL_NAMES_FILE="kernels.txt"
-KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
+DATA_PATH="/usr/share/akiu"
+KERNEL_NAMES_FILE="$DATA_PATH/kernels.txt"
+KERNEL_AUR_NAMES_FILE="$DATA_PATH/kernels-aur.txt"
 AUR_HELPERS="yaourt packer pacaur"
 
-err() {
+fatal() {
     printf "\e[31mError:\e[0m $1\n" 1>&2; exit 1
 }
 
 root_check() {
     if [[ $EUID != 0 ]]; then
-        err "Please run as root."
+        fatal "Please run as root."
     fi
 }
 
 data_files_check() {
     if [[ ! -f $KERNEL_NAMES_FILE ]] || [[ ! -f $KERNEL_AUR_NAMES_FILE ]]; then
-        err "Missing data files!"
+        fatal "Missing data files!"
     fi
 }
 
 args_check() {
-    [[ $1 -lt $2 || $1 -gt $3 ]] && err "Please use the right amount of arguments (use -h for help)."
+    [[ $1 -lt $2 || $1 -gt $3 ]] && fatal "Please use the right amount of arguments (use -h for help)."
 }
 
 usage() {
@@ -87,6 +88,7 @@ kernel_list() {
 }
 
 kernel_repo() {
+    if [[ "$FRESH" == "n" ]]; then
     printf "\e[32mAvailable kernels online:\e[0m\n"
     for kname in ${KERNEL_NAMES}; do
         name=$(pacman -Ssq $kname | grep -w ^$kname$)
@@ -104,10 +106,10 @@ kernel_remove() {
     pkgremove=()
 
     for kernel in "$@"; do
-        [[ -z "$kernel" ]] && err "Invalid argument (use -h for help)."
-        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && err "Please enter a valid kernel name.\n$(kernel_list)"
-        [[ $current_kname = $kernel ]] && err "You can't remove your current kernel."
-        [[ -z $(pacman -Qqs "^$1$") ]] && err "Kernel not installed.\n$(kernel_list)"
+        [[ -z "$kernel" ]] && fatal "Invalid argument (use -h for help)."
+        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && fatal "Please enter a valid kernel name.\n$(kernel_list)"
+        [[ $current_kname = $kernel ]] && fatal "You can't remove your current kernel."
+        [[ -z $(pacman -Qqs "^$1$") ]] && fatal "Kernel not installed.\n$(kernel_list)"
 
         for pkg in $(pacman -Qqs "$kernel"); do
             pkgremove+=("$pkg")
@@ -121,21 +123,17 @@ kernel_install() {
     pkginstall=()
     rmc=0
 
-    _pacman="pacman"
-
-    if [[ "$AUR_ENABLED" == "y" ]]; then
-         _pacman="$AUR_HELPER"
-    fi
-
     for kernel in "$@"; do
         echo $kernel
         [[ $kernel = "rmc" ]] && rmc=1 && continue
-        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && err "Please enter a valid kernel name.\n$(kernel_repo)"
-        [[ $current_kname = $kernel ]] && err "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
-        if [[ -z $($_pacman -Ssq "^$kernel$") ]]; then
-            kernel_repo
-            err "Please make sure if the given kernel exist."
-        fi
+        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && fatal "Please enter a valid kernel name.\n$(kernel_repo)"
+        [[ $current_kname = $kernel ]] && fatal "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
+
+
+        #if [[ -z $($_pacman -Ssq "^$kernel$") ]]; then
+        #    kernel_repo
+        #    fatal "Please make sure if the given kernel exist."
+        #fi
 
         for pkg in $($_pacman -Qqs "$current_kname"); do
             pkg=${pkg//$current/$kernel}
@@ -163,7 +161,7 @@ check_aur_helper() {
             return 0
         fi
     done
-    err "You need to install one of these AUR helpers ($AUR_HELPERS)"
+    fatal "You need to install one of these AUR helpers ($AUR_HELPERS)"
 }
 
 ###############################################################################
@@ -201,7 +199,7 @@ while :; do
                                     kernel_install $1
                                     exit 0
                                 else
-                                    err "Invalid arguments (use -h for help)."
+                                    fatal "Invalid arguments (use -h for help)."
                                 fi ;;
         -l|--list-all)          kernel_repo
                                 exit 0 ;;
@@ -213,7 +211,7 @@ while :; do
                                     kernel_remove $1
                                     exit 0
                                 else
-                                    err "Invalid arguments (use -h for help)."
+                                    fatal "Invalid arguments (use -h for help)."
                                 fi ;;
         --)                     shift
                                 break ;;
