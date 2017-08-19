@@ -1,17 +1,17 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
 #
-#  akiu - Antergos Kernel Installer Utility
+#  aki - Antergos Kernel Installer
 #  Copyright © 2017 Antergos
 #
 #  Loosely based on code from mhwd-kernel from Manjaro
 #
-#  Akiu is free software; you can redistribute it and/or modify
+#  Aki is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Akiu is distributed in the hope that it will be useful,
+#  Aki is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
@@ -23,13 +23,13 @@
 #  by works containing it is required.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with Akiu; If not, see <http://www.gnu.org/licenses/>.
+#  along with Aki; If not, see <http://www.gnu.org/licenses/>.
 
 set -euo pipefail
 
 KERNEL_NAMES=""
 KERNEL_AUR_NAMES=""
-DATA_PATH="/usr/share/akiu"
+DATA_PATH="/usr/share/aki"
 KERNEL_NAMES_FILE="$DATA_PATH/kernels.txt"
 KERNEL_AUR_NAMES_FILE="$DATA_PATH/kernels-aur.txt"
 AUR_HELPERS="yaourt packer pacaur"
@@ -55,7 +55,7 @@ args_check() {
 }
 
 usage() {
-    echo "Usage: akiu [option] [kernel]
+    echo "Usage: aki [option] [kernel]
         -h  --help               Show this help message
         -i  --install            Install new kernel
         -l  --list               List all available kernels
