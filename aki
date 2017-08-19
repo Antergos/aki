@@ -125,37 +125,31 @@ kernel_remove() {
 }
 
 kernel_install() {
-    pkginstall=()
-    rmc=0
 
-    for kernel in "$@"; do
-        echo $kernel
-        [[ $kernel = "rmc" ]] && rmc=1 && continue
-        [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && fatal "Please enter a valid kernel name.\n$(kernel_repo)"
-        [[ $current_kname = $kernel ]] && fatal "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
-
-
-        #if [[ -z $($_pacman -Ssq "^$kernel$") ]]; then
-        #    kernel_repo
-        #    fatal "Please make sure if the given kernel exist."
-        #fi
-
-        for pkg in $($_pacman -Qqs "$current_kname"); do
-            pkg=${pkg//$current/$kernel}
-            [[ -n $($_pacman -Ssq "^$pkg$") ]] && pkginstall+=("$pkg")
-        done
-    done
-
-    $_pacman -Sqyy
-    outofdate="$($_pacman -Qqu | tr '\n' ' ')"
+    set +euo pipefail
+    outofdate="$(pacman -Qqu | tr '\n' ' ')"
+    set -euo pipefail
 
     if [[ -n $outofdate ]]; then
-        echo "The following packages are out of date, please update your system first: $outofdate" >&2
-        read -p "Do you want to continue anyway? [y/N] " yesno
-        [[ $yesno = [Yy]?([Ee][Ss]) ]] || exit 1
+        fatal "The following packages are out of date, please update your system first: $outofdate"
     fi
 
-    echo "$_pacman -S \"${pkginstall[@]}\""
+    pkginstall=()
+    use_aur="n"
+
+    kernel=${1:-}
+
+    [[ $current_kname = $kernel ]] && fatal "You can't reinstall your current kernel. Please use 'pacman -Syu' instead to update."
+    [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} != *"$kernel"* ]] && fatal "Please enter a valid kernel name.\n$(kernel_repo)"
+    [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} == *"$kernel"* ]] && use_aur="y"
+
+    if [[ "$use_aur" != "y" ]]; then
+        echo Installing "$kernel"...
+        echo "pacman -S \"$kernel\""
+    else
+        echo Installing "$kernel" from AUR...
+        echo "$AUR_HELPER -S \"$kernel\""
+    fi
 }
 
 check_aur_helper() {
@@ -186,7 +180,7 @@ AUR_ENABLED="n"
 for param in $@; do
     if [[ "$param" == "--aur" ]] || [[ "$param" == "-a" ]]; then
         AUR_ENABLED="y"
-        printf "(Using \e[32m$AUR_HELPER\e[0m AUR helper)\n"
+        printf "Will use \e[32m$AUR_HELPER\e[0m as AUR helper if needed.\n"
     fi
 done
 
