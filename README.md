@@ -1,5 +1,5 @@
-# akiu
-Antergos Kernel Install Utility
+# aki
+Antergos Kernel Installer
 
 ## Official packages
 
