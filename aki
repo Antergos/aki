@@ -125,7 +125,6 @@ kernel_remove() {
 }
 
 kernel_install() {
-
     set +euo pipefail
     outofdate="$(pacman -Qqu | tr '\n' ' ')"
     set -euo pipefail
@@ -144,11 +143,15 @@ kernel_install() {
     [[ ${KERNEL_NAMES} != *"$kernel"* ]] && [[ ${KERNEL_AUR_NAMES} == *"$kernel"* ]] && use_aur="y"
 
     if [[ "$use_aur" != "y" ]]; then
+        root_check
         echo Installing "$kernel"...
-        echo "pacman -S \"$kernel\""
+        pacman -Sq $kernel
     else
+        if [[ $EUID == 0 ]]; then
+            fatal "When installing from AUR you need NOT to run this script as root."
+        fi
         echo Installing "$kernel" from AUR...
-        echo "$AUR_HELPER -S \"$kernel\""
+        $AUR_HELPER -Sq $kernel
     fi
 }
 
@@ -193,7 +196,6 @@ while :; do
         -h|-\?|--help)          usage
                                 exit 0 ;;
         -i|--install)           if [ "${2:-}" ]; then
-                                    root_check
                                     shift
                                     kernel_install $1
                                     exit 0
