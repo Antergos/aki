@@ -30,8 +30,8 @@ set -euo pipefail
 KERNEL_NAMES=""
 KERNEL_AUR_NAMES=""
 DATA_PATH="/usr/share/aki"
-KERNEL_NAMES_FILE="$DATA_PATH/kernels.txt"
-KERNEL_AUR_NAMES_FILE="$DATA_PATH/kernels-aur.txt"
+KERNEL_NAMES_FILE="kernels.txt"
+KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
 AUR_HELPERS="yaourt packer pacaur"
 
 fatal() {
@@ -45,8 +45,14 @@ root_check() {
 }
 
 data_files_check() {
+    # First, we check if they're in the same directory
     if [[ ! -f $KERNEL_NAMES_FILE ]] || [[ ! -f $KERNEL_AUR_NAMES_FILE ]]; then
-        fatal "Missing data files!"
+        # if not, we check in DATA_PATH
+        KERNEL_NAMES_FILE="$DATA_PATH/$KERNEL_NAMES_FILE"
+        KERNEL_AUR_NAMES_FILE="$DATA_PATH/$KERNEL_AUR_NAMES_FILE"
+        if [[ ! -f $KERNEL_NAMES_FILE ]] || [[ ! -f $KERNEL_AUR_NAMES_FILE ]]; then
+            fatal "Missing data files!"
+        fi
     fi
 }
 
