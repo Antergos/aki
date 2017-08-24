@@ -84,3 +84,6 @@ The Linux kernel and a few patches written by Alex Williamson (acs override and 
 
 #### linux-zen-git
 The ZEN Kernel is the result of a collaborative effort of kernel hackers to provide the best Linux kernel possible for everyday systems. (GIT version)
+
+
+aki.svg icon from [Antü Icons](https://github.com/fabianalexisinostroza/Antu-icons)
