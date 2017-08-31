@@ -153,6 +153,10 @@ kernel_install() {
         echo Installing "$kernel" from AUR...
         $AUR_HELPER -Sq $kernel
     fi
+
+    # Once installed, let's try to rebuild Grub configuration
+    echo "Rebuilding grub.cfg..."
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
 }
 
 check_aur_helper() {
