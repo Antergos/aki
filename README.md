@@ -1,4 +1,4 @@
-# aki
+# AKI
 Antergos Kernel Installer
 
 ## Official packages
