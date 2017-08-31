@@ -155,8 +155,10 @@ kernel_install() {
     fi
 
     # Once installed, let's try to rebuild Grub configuration
-    echo "Rebuilding grub.cfg..."
-    sudo grub-mkconfig -o /boot/grub/grub.cfg
+    if [ -f /usr/bin/grub-mkconfig ]; then
+        echo "Rebuilding grub.cfg..."
+        sudo grub-mkconfig -o /boot/grub/grub.cfg
+    fi
 }
 
 check_aur_helper() {
