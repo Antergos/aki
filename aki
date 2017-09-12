@@ -34,8 +34,12 @@ KERNEL_NAMES_FILE="kernels.txt"
 KERNEL_AUR_NAMES_FILE="kernels-aur.txt"
 AUR_HELPERS="yaourt packer pacaur"
 
+# Colors
+CSTART="\e[31m"
+CEND="\e[0m"
+
 fatal() {
-    printf "\e[31mError:\e[0m $1\n" 1>&2; exit 1
+    printf "${CSTART}Error:${CEND} $1\n" 1>&2; exit 1
 }
 
 root_check() {
@@ -67,18 +71,19 @@ usage() {
         -l  --list               List all available kernels
         -li --list-installed     List installed kernels
         -r  --remove             Remove kernel
-        -a  --aur                Enable AUR kernels (disabled by default)"
+        -a  --aur                Enable AUR kernels (disabled by default)
+        -n  --no-color           Avoid showing ANSI colors in messages"
 }
 
 load_kernel_names() {
     KERNEL_NAMES=$(grep -h -v ^# ${KERNEL_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
     if [[ "$AUR_ENABLED" == "y" ]]; then
-      KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
+        KERNEL_AUR_NAMES=$(grep -h -v ^# ${KERNEL_AUR_NAMES_FILE} | grep -v '^[[:blank:]]*$' | cut -f1 -d ' ' | grep -v \\-docs | grep -v \\-headers | tr '\n' ' ')
     fi
 }
 
 kernel_installed_list() {
-    printf "\e[32mCurrently running:\e[0m $(uname -r) (${current})\n"
+    printf "${CSTART}Currently running:${CEND} $(uname -r) (${current})\n"
     echo "The following kernels are installed in your system:"
     names=()
     for kname in ${KERNEL_NAMES}; do
@@ -94,7 +99,7 @@ kernel_installed_list() {
 }
 
 kernel_available_list() {
-    printf "\e[32mAvailable kernels online:\e[0m\n"
+    printf "${CSTART}Available kernels online:${CEND}\n"
     for kname in ${KERNEL_NAMES}; do
         name=$(pacman -Ssq $kname | grep -w ^$kname$)
         [[ ! -z "$name" ]] && echo $name
@@ -185,11 +190,18 @@ current_kname=$(echo $current_kname | tr '[:upper:]' '[:lower:]')
 
 check_aur_helper
 
+for param in $@; do
+    if [[ "$param" == "--no-color" ]] || [[ "$param" == "-n" ]]; then
+        CSTART=""
+        CEND=""
+    fi
+done
+
 AUR_ENABLED="n"
 for param in $@; do
     if [[ "$param" == "--aur" ]] || [[ "$param" == "-a" ]]; then
         AUR_ENABLED="y"
-        printf "Will use \e[32m$AUR_HELPER\e[0m as AUR helper if needed.\n"
+        printf "Will use ${CSTART}$AUR_HELPER${CEND} as AUR helper if needed.\n"
     fi
 done
 
@@ -199,6 +211,7 @@ load_kernel_names
 while :; do
     case ${1:-"-h"} in
         -a|--aur)               shift ;;
+        -n|--no-color)          shift ;;
         -h|-\?|--help)          usage
                                 exit 0 ;;
         -i|--install)           if [ "${2:-}" ]; then
