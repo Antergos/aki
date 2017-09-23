@@ -66,13 +66,14 @@ args_check() {
 
 usage() {
     echo "Usage: aki [option] [kernel]
-        -h  --help               Show this help message
-        -i  --install            Install new kernel
-        -l  --list               List all available kernels
-        -li --list-installed     List installed kernels
-        -r  --remove             Remove kernel
-        -a  --aur                Enable AUR kernels (disabled by default)
-        -n  --no-color           Avoid showing ANSI colors in messages"
+        -h, --help               Show this help message
+        -i, --install            Install new kernel
+        -l, --list               List all available kernels
+        -li, --list-installed    List installed kernels
+        -r, --remove             Remove kernel
+        -a, --aur                Enable AUR kernels (disabled by default)
+        -n, --no-color           Avoid showing ANSI colors in messages
+    "
 }
 
 load_kernel_names() {
